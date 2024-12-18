@@ -1,0 +1,70 @@
+[{
+  "_id": {
+    "$oid": "666bb629fe402a1a705dbe63"
+  },
+  "id_category": "OBT",
+  "name_category": "Obat",
+  "createdAt": {
+    "$date": "2024-06-14T03:16:58.011Z"
+  },
+  "updatedAt": {
+    "$date": "2024-06-14T03:16:58.011Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "666bb634fe402a1a705dbe65"
+  },
+  "id_category": "SPL",
+  "name_category": "Suplemen",
+  "createdAt": {
+    "$date": "2024-06-14T03:17:08.422Z"
+  },
+  "updatedAt": {
+    "$date": "2024-06-14T03:17:08.422Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "666bb668fe402a1a705dbe67"
+  },
+  "id_category": "NTR",
+  "name_category": "Nutrisi",
+  "createdAt": {
+    "$date": "2024-06-14T03:18:00.188Z"
+  },
+  "updatedAt": {
+    "$date": "2024-06-14T03:18:00.188Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "666bb692fe402a1a705dbe69"
+  },
+  "id_category": "PBY",
+  "name_category": "Produk Bayi",
+  "createdAt": {
+    "$date": "2024-06-14T03:18:42.215Z"
+  },
+  "updatedAt": {
+    "$date": "2024-06-14T03:18:42.215Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "666bb6a9fe402a1a705dbe6b"
+  },
+  "id_category": "BTY",
+  "name_category": "Kecantikan",
+  "createdAt": {
+    "$date": "2024-06-14T03:19:05.368Z"
+  },
+  "updatedAt": {
+    "$date": "2024-06-14T03:19:05.368Z"
+  },
+  "__v": 0
+}]

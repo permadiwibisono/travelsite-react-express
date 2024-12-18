@@ -1,0 +1,71 @@
+[{
+  "_id": {
+    "$oid": "666bbc768a7c05d7a5fb58d4"
+  },
+  "productName": "ACTONEL 35 MG BOX 4 TABLET",
+  "id_category": "OBT",
+  "desc": "PENGGUNAAN OBAT INI HARUS SESUAI PETUNJUK DOKTER. Actonel digunakan untuk terapi dan preventif terhadap osteoporosis pada wanita pasca menopause dan glukokortikoid yang menyebabkan osteoporosis pada pria dan wanita.",
+  "indication": "Digunakan untuk terapi dan preventif terhadap osteoporosis",
+  "composition": "Tiap tablet mengandung Risedronate Na 35 mg",
+  "dose": "ATURAN PAKAI HARUS SESUAI DENGAN PETUNJUK DOKTER. 35 mg 1 kali seminggu",
+  "howtouse": "Berikan dengan segelas air sekurang-kurangnya 30 menit sebelum konsumsi makanan/minuman/obat pertama kali pada hari yang sama dan tetap dalam posisi duduk/tegak selama sekurang-kurangnya 30 menit. Telan utuh, jangan dikunyah atau dihancurkan",
+  "effect": "Infeksi, nyeri punggung, artralgia, nyeri perut, mual",
+  "group": "Obat Keras",
+  "nie": "DKI2153900417A1",
+  "price": 690000,
+  "createdAt": {
+    "$date": "2024-06-14T03:43:50.689Z"
+  },
+  "updatedAt": {
+    "$date": "2024-06-14T03:43:50.689Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "666bbd618a7c05d7a5fb58d6"
+  },
+  "productName": "JOINTACE BOX 30 TABLET",
+  "id_category": "SPL",
+  "desc": "Digunakan untuk memelihara kesehatan kartilago (tulang rawan) dan sendi.",
+  "indication": "Digunakan untuk memelihara kesehatan kartilago (tulang rawan) dan sendi.",
+  "composition": "Tiap kaplet mengandung glucosamine sulfate 750 mg, MSM 200 mg, manganese 3 mg, Zink 3 mg, copper 0.5 mg, boron 0.5 mg, vitamin C 50 mg, vitamin D3 200 IU",
+  "dose": "Terapi awal : (sekurang-kurangnya selama 60 hari pertama terapi) 2 tablet perhari sebagai dosis tunggal atau terbagi dalam 2 dosis. Terapi pemeliharaan : (?60 hari jika tercapai perbaikan) 1 tablet perhari, dapat ditingkatkan hingga 2 tablet perhari",
+  "howtouse": "Diberikan sesuai dengan petunjuk dosis penggunaan, leaflet/brosur, dokter atau apoteker",
+  "effect": "-",
+  "group": "Suplemen & Vitamin",
+  "nie": "SL151500891",
+  "price": 205500,
+  "createdAt": {
+    "$date": "2024-06-14T03:47:45.243Z"
+  },
+  "updatedAt": {
+    "$date": "2024-06-14T04:07:26.683Z"
+  },
+  "__v": 0,
+  "image": "https://assets.goapotik.com/mediums/l_bio_serbuk_sachet_1_gram_11.jpg"
+},
+{
+  "_id": {
+    "$oid": "666bbecc8a7c05d7a5fb58d9"
+  },
+  "productName": "L-BIO SERBUK SACHET 1 GRAM",
+  "id_category": "SPL",
+  "image": "https://assets.goapotik.com/mediums/l_bio_serbuk_sachet_1_gram_11.jpg",
+  "desc": "L-Bio dapat Digunakan untuk memelihara kesehatan fungsi pencernaan pada anak dan dewasa. Untuk membantu mengembalikan fungsi normal pencernaan selama diare, sembelit, dispepsia, dan intoleransi laktosa. Untuk membantu keseimbangan flora normal selama mengonsumsi antibiotika. Untuk membantu mengembalikan fungsi normal pencernaan pada pasien yang mengalami kemoterapi, tukak peptik. Untuk membantu fungsi fermentasi usus pada bayi.",
+  "indication": "Digunakan untuk memelihara kesehatan fungsi pencernaan pada anak dan dewasa. Untuk membantu mengembalikan fungsi normal pencernaan selama diare, sembelit, dispepsia, dan intoleransi laktosa. Untuk membantu keseimbangan flora normal selama mengonsumsi antibiotika. Untuk membantu mengembalikan fungsi normal pencernaan pada pasien yang mengalami kemoterapi, tukak peptik. Untuk membantu fungsi fermentasi usus pada bayi.",
+  "composition": "Tiap sachet mengandung rice starch, maltodextrin, Lactobacillus acidophilus, Lactobacillus casei, Lactobacillus salivarius, Bifidobacterium infantis, Bifidobacterium lactis, Bifidobacterium longum, Lactococcus lactis.",
+  "dose": "Usia ?12 tahun : 3 sachet 1 kali perhari. Usia ?2 tahun : 2-3 sachet 1 kali perhari",
+  "howtouse": "Diberikan sesuai dengan petunjuk dosis penggunaan, leaflet/brosur, dokter atau apoteker",
+  "effect": "-",
+  "group": "Suplemen & Vitamin",
+  "nie": "SI074225431",
+  "price": 9400,
+  "createdAt": {
+    "$date": "2024-06-14T03:53:48.967Z"
+  },
+  "updatedAt": {
+    "$date": "2024-06-14T03:53:48.967Z"
+  },
+  "__v": 0
+}]

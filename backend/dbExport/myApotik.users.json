@@ -1,0 +1,68 @@
+[{
+  "_id": {
+    "$oid": "666bb09a0e323c0f609ed43c"
+  },
+  "username": "superadmin",
+  "email": "superadmin@gmail.com",
+  "password": "$2a$10$M1KD08ckaSbrzKw.EPnPDeSBYS8ySq/WmL8umQZPQT5uEHChOFnjC",
+  "role": "Superadmin",
+  "phone": "628123456789",
+  "createdAt": {
+    "$date": "2024-06-14T02:53:14.651Z"
+  },
+  "updatedAt": {
+    "$date": "2024-06-14T02:53:14.651Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "666bb0a20e323c0f609ed440"
+  },
+  "username": "admin",
+  "email": "admin@gmail.com",
+  "password": "$2a$10$426dosC2OXKljGsjMDEiyeb8bdxCl8i/mdVrHZYNsSRT0Fg4M9v8u",
+  "role": "Admin",
+  "phone": "628123456789",
+  "createdAt": {
+    "$date": "2024-06-14T02:53:22.193Z"
+  },
+  "updatedAt": {
+    "$date": "2024-06-14T02:53:22.193Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "666bb0a70e323c0f609ed444"
+  },
+  "username": "user",
+  "email": "user@gmail.com",
+  "password": "$2a$10$LglGK.KhhjLsmTyobX5Nm.TowOFjMWW1mvjz.0jF3JTtXWnLrb0Bq",
+  "role": "User",
+  "phone": "628123456789",
+  "createdAt": {
+    "$date": "2024-06-14T02:53:27.958Z"
+  },
+  "updatedAt": {
+    "$date": "2024-06-14T02:53:27.958Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "666bc5c5e9725a44b3a4257f"
+  },
+  "username": "user1",
+  "email": "user1@gmail.com",
+  "password": "$2a$10$0o5ZqUzWiNPt7KP7MqrdJOjWW.W1PvJIrvkthVCKDW82xbQM5CnDm",
+  "role": "User",
+  "phone": "628123456789",
+  "createdAt": {
+    "$date": "2024-06-14T04:23:34.091Z"
+  },
+  "updatedAt": {
+    "$date": "2024-06-14T04:23:34.091Z"
+  },
+  "__v": 0
+}]
