@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { Container, Form, Button, Alert, Card } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeSlash } from 'react-bootstrap-icons';
+import { CartContext } from '../contexts/CartContext';
 import '../assets/css/Login.css';
 import api from '../api';
 
@@ -10,6 +11,7 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { fetchCart } = useContext(CartContext);
 
   // PASSWORD ICON
   const [showPassword, setShowPassword] = useState(false);
@@ -27,6 +29,10 @@ const Login = () => {
         localStorage.setItem('userData', JSON.stringify(userData.user));
         localStorage.setItem("sessionStart", Date.now());
         api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
+        // Fetch the user's cart after login
+        await fetchCart();
+
         if (userData.user.role === 'Admin' || userData.user.role === 'Superadmin') {
           navigate('/dashboard');
         } else {

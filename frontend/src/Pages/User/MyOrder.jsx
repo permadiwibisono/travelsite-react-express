@@ -1,19 +1,27 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Container, Row, Col, Card, ListGroup, Breadcrumb, Button, Badge } from 'react-bootstrap';
+import { Container, Row, Col, Card, ListGroup, Breadcrumb, Button, Accordion } from 'react-bootstrap';
 import Header from "../../Components/User/Header";
 import Footer from "../../Components/User/Footer";
 import api from '../../api';
 
 const MyOrder = () => {
-  const [orders, setOrders] = useState([]);
+  const [orders, setOrders] = useState({}); // Grouped orders by date
+  const [selectedOrder, setSelectedOrder] = useState(null); // Store order details
+  const [isCheckingPayment, setIsCheckingPayment] = useState(false); // Loading state for payment check
 
   useEffect(() => {
-    // Mengambil daftar pesanan dari API
     const fetchOrders = async () => {
       try {
         const response = await api.get('/order');
-        setOrders(response.data); // Simpan data pesanan ke state
+        const groupedOrders = response.data.reduce((acc, order) => {
+          const date = new Date(order.createdAt).toLocaleDateString();
+          if (!acc[date]) acc[date] = [];
+          acc[date].push(order);
+          return acc;
+        }, {});
+
+        setOrders(groupedOrders);
       } catch (error) {
         console.error('Error fetching orders:', error);
       }
@@ -22,28 +30,24 @@ const MyOrder = () => {
     fetchOrders();
   }, []);
 
-  const getPaymentStatusBadge = (status) => {
-    let variant, text;
-
-    switch (status) {
-      case 'Pending':
-        variant = 'warning';
-        text = 'Pending';
-        break;
-      case 'Successful':
-        variant = 'success';
-        text = 'Paid';
-        break;
-      case 'Cancelled':
-        variant = 'danger';
-        text = 'Cancelled';
-        break;
-      default:
-        variant = 'secondary';
-        text = 'Unknown';
+  const fetchOrderDetails = async (orderId) => {
+    try {
+      const response = await api.get(`/order/orderid/${orderId}`);
+      setSelectedOrder(response.data);
+    } catch (error) {
+      console.error('Error fetching order details:', error);
     }
+  };
 
-    return <Badge bg={variant}>{text}</Badge>;
+  const checkPaymentStatus = async (paymentLink) => {
+    setIsCheckingPayment(true);
+    try {
+      window.open(paymentLink, '_blank');
+    } catch (error) {
+      console.error('Error checking payment status:', error);
+    } finally {
+      setIsCheckingPayment(false);
+    }
   };
 
   return (
@@ -56,58 +60,106 @@ const MyOrder = () => {
             <Breadcrumb.Item active>My Order</Breadcrumb.Item>
           </Breadcrumb>
         </Row>
-        {orders.map(order => (
-          <Row className="mt-3" key={order._id}>
-            <Col md={12}>
-              <Card>
-                <Card.Body>
-                  <Card.Title>Order ID: {order._id}</Card.Title>
-                  <Breadcrumb>
-                    <Breadcrumb.Item active>Status: {getPaymentStatusBadge(order.status)}</Breadcrumb.Item>
-                    <Breadcrumb.Item active>Address: {order.address}</Breadcrumb.Item>
-                  </Breadcrumb>
-                  <ListGroup variant="flush">
-                    {order.items.map(item => (
-                      <ListGroup.Item key={item._id}>
-                        <Row>
-                          <Col md={2}>
-                            <img src={item.product.image} className="img-fluid" alt={item.product.productName} />
-                          </Col>
-                          <Col md={6}>{item.product.productName}</Col>
-                          <Col md={2}>Rp {item.product.price.toLocaleString()}</Col>
-                          <Col md={2}>x {item.quantity}</Col>
-                        </Row>
-                      </ListGroup.Item>
-                    ))}
-                  </ListGroup>
-                  <Card className="mt-4">
+
+        {Object.keys(orders).map(date => (
+          <div key={date} className="mb-4">
+            <h5 className="text-primary">Orders on {date}</h5>
+            {orders[date].map(order => (
+              <Row className="mt-3" key={order._id}>
+                <Col md={12}>
+                  <Card>
                     <Card.Body>
-                      <Card.Title>Total Payment</Card.Title>
+                      <Card.Title>Order ID: {order._id}</Card.Title>
                       <ListGroup variant="flush">
-                        <ListGroup.Item>
-                          <Row>
-                            <Col>Total</Col>
-                            <Col>Rp {order.total.toLocaleString()}</Col>
-                          </Row>
-                        </ListGroup.Item>
+                        {order.items.map(item => (
+                          <ListGroup.Item key={item._id}>
+                            <Row>
+                              <Col md={2}>
+                                <img src={item.product.image} className="img-fluid" alt={item.product.productName} />
+                              </Col>
+                              <Col md={6}>{item.product.productName}</Col>
+                              <Col md={2}>Rp {item.product.price.toLocaleString()}</Col>
+                              <Col md={2}>x {item.quantity}</Col>
+                            </Row>
+                          </ListGroup.Item>
+                        ))}
                       </ListGroup>
-                      {order.whatsappLink && (
-                        <Button 
-                          variant="success" 
-                          className="w-100 mt-3" 
-                          as="a" 
-                          href={order.whatsappLink} 
-                          target="_blank"
-                        >
-                          Confirm Order on WhatsApp
-                        </Button>
-                      )}
+
+                      <Accordion className="mt-3">
+                        <Accordion.Item eventKey="0">
+                          <Accordion.Header onClick={() => fetchOrderDetails(order.transactionId)}>
+                            View Details
+                          </Accordion.Header>
+                          <Accordion.Body>
+                            {selectedOrder && selectedOrder._id === order._id ? (
+                              <>
+                                <Card className="mt-4">
+                                  <Card.Body>
+                                    <Card.Title>Order Details</Card.Title>
+                                    <ListGroup variant="flush">
+                                      <ListGroup.Item>
+                                        <Row>
+                                          <Col>Address:</Col>
+                                          <Col>{selectedOrder.address}</Col>
+                                        </Row>
+                                      </ListGroup.Item>
+                                      <ListGroup.Item>
+                                        <Row>
+                                          <Col>Payment Method:</Col>
+                                          <Col>{selectedOrder.midtransStatus?.payment_type || 'Pending'}</Col>
+                                        </Row>
+                                      </ListGroup.Item>
+                                      <ListGroup.Item>
+                                        <Row>
+                                          <Col>Payment Status:</Col>
+                                          <Col>{selectedOrder.midtransStatus?.transaction_status || 'Pending'}</Col>
+                                        </Row>
+                                      </ListGroup.Item>
+                                      <ListGroup.Item>
+                                        <Row>
+                                          <Col>Total Payment:</Col>
+                                          <Col>Rp {selectedOrder.total.toLocaleString()}</Col>
+                                        </Row>
+                                      </ListGroup.Item>
+                                    </ListGroup>
+
+                                    {selectedOrder.paymentLink && (
+                                      <Button
+                                        variant="info"
+                                        className="w-100 mt-3"
+                                        onClick={() => checkPaymentStatus(selectedOrder.paymentLink)}
+                                        disabled={isCheckingPayment}
+                                      >
+                                        {isCheckingPayment ? 'Checking...' : 'Check Payment Status'}
+                                      </Button>
+                                    )}
+
+                                    {selectedOrder.whatsappLink && (
+                                      <Button
+                                        variant="success"
+                                        className="w-100 mt-3"
+                                        as="a"
+                                        href={selectedOrder.whatsappLink}
+                                        target="_blank"
+                                      >
+                                        Confirm Order on WhatsApp
+                                      </Button>
+                                    )}
+                                  </Card.Body>
+                                </Card>
+                              </>
+                            ) : (
+                              <p>Loading details...</p>
+                            )}
+                          </Accordion.Body>
+                        </Accordion.Item>
+                      </Accordion>
                     </Card.Body>
                   </Card>
-                </Card.Body>
-              </Card>
-            </Col>
-          </Row>
+                </Col>
+              </Row>
+            ))}
+          </div>
         ))}
       </Container>
       <Footer />

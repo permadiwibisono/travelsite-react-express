@@ -18,11 +18,6 @@ const OrderSchema = new mongoose.Schema({
         }
     }],
     total: { type: Number, required: true },
-    status: {
-        type: String,
-        default: 'Pending',
-        enum: ['Pending', 'Successful', 'Cancelled', 'Failed']
-    },
     address: { type: String, required: true },
     paymentLink: { type: String },
     transactionId: { type: String, unique: true },

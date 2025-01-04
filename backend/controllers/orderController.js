@@ -2,6 +2,7 @@ import Cart from '../models/cartModel.js';
 import Order from '../models/orderModel.js';
 import Product from '../models/productModel.js';
 import snap from '../utils/midtrans.js';
+import axios from 'axios'
 
 export const checkoutCart = async (req, res) => {
     const userId = req.user.id;
@@ -35,14 +36,14 @@ export const checkoutCart = async (req, res) => {
                 email: req.user.email,
                 first_name: req.user.username,
                 phone: req.user.phone || '08123456789',
-                shipping_address: {
-                    address: address,
-                },
+                shipping_address: address,
             },
             callbacks: {
-                finish: 'http://localhost:3000/order/success', // URL untuk kembali ke website
+                finish: 'http://localhost:3000/', // URL untuk kembali ke website
             }
         };
+
+        console.log(parameter)
 
         const transaction = await snap.createTransaction(parameter);
 
@@ -77,6 +78,7 @@ export const handleMidtransNotification = async (req, res) => {
     try {
         const notification = req.body;
         const statusResponse = await snap.transaction.notification(notification);
+        console.log(statusResponse)
 
         const orderId = statusResponse.order_id;
         const transactionStatus = statusResponse.transaction_status;
@@ -108,7 +110,7 @@ export const handleMidtransNotification = async (req, res) => {
         res.status(200).json({
             msg: 'Payment status updated',
             status: transactionStatus,
-            redirectUrl: '/order/success' // Redirect user to success page
+            redirectUrl: '/' // Redirect user to success page
         });
     } catch (error) {
         console.error(error.message);
@@ -143,21 +145,73 @@ export const getOrder = async (req, res) => {
     const userId = req.user.id;
 
     try {
+        // Ambil semua pesanan milik pengguna berdasarkan userId
         const orders = await Order.find({ user: userId }).populate({
             path: 'items.product',
-            select: '-createdAt -updatedAt' // exclude timestamps, select all other fields
+            select: '-createdAt -updatedAt' // Mengabaikan timestamps
         });
 
         if (!orders || orders.length === 0) {
             return res.status(404).json({ msg: 'No orders found' });
         }
 
-        res.json(orders);
+        // Modifikasi setiap produk dalam items untuk menambahkan URL gambar lengkap
+        const ordersWithImageUrls = orders.map(order => ({
+            ...order._doc,
+            items: order.items.map(item => ({
+                ...item._doc,
+                product: {
+                    ...item.product._doc,
+                    image: item.product.image
+                        ? `${req.protocol}://${req.get('host')}${item.product.image}`
+                        : null
+                }
+            }))
+        }));
+
+        res.json(ordersWithImageUrls);
     } catch (error) {
         console.error(error.message);
         res.status(500).send('Server error');
     }
 };
+
+export const getOrderById = async (req, res) => {
+    const { orderId } = req.params;
+
+    try {
+        // Cari order berdasarkan orderId
+        const order = await Order.findOne({ transactionId: orderId }).populate('user', 'username').populate('items.product');
+        console.log(order)
+        if (!order) {
+            return res.status(404).json({ msg: 'Order not found' });
+        }
+
+        // Panggil API Midtrans untuk mendapatkan status order
+        const midtransResponse = await axios.get(
+            `https://api.sandbox.midtrans.com/v2/${order.transactionId}/status`,
+            {
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    Authorization: `Basic U0ItTWlkLXNlcnZlci0xVWgwZjJSLUhPb3pLTlBnczMwcjRVUGs=`
+                }
+            }
+        );
+
+        // Gabungkan informasi order lokal dengan status dari Midtrans
+        const updatedOrder = {
+            ...order._doc,
+            midtransStatus: midtransResponse.data
+        };
+
+        res.json(updatedOrder);
+    } catch (error) {
+        console.error(error.message);
+        res.status(500).send('Server error');
+    }
+};
+
 
 export const getAllOrder = async (req, res) => {
     try {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Table, Button, Modal } from 'react-bootstrap';
+import { Container, Table, Button, Modal, Row, Col } from 'react-bootstrap';
 import api from '../../api';
 import HeaderDashboard from '../../Components/Admin/HeaderDashboard';
 
@@ -14,10 +14,19 @@ const OrderListPage = () => {
 
   const fetchOrders = async () => {
     try {
-      const response = await api.get('/order/all'); // Ensure API works as expected
+      const response = await api.get('/order/all'); // Fetch all orders
       setOrders(response.data);
     } catch (error) {
       console.error('Failed to fetch orders', error);
+    }
+  };
+
+  const fetchOrderById = async (orderId) => {
+    try {
+      const response = await api.get(`/order/orderid/${orderId}`);
+      setSelectedOrder(response.data);
+    } catch (error) {
+      console.error('Failed to fetch order details', error);
     }
   };
 
@@ -26,8 +35,8 @@ const OrderListPage = () => {
     setSelectedOrder(null);
   };
 
-  const handleShowModal = (order) => {
-    setSelectedOrder(order);
+  const handleShowModal = (orderId) => {
+    fetchOrderById(orderId);
     setShowModal(true);
   };
 
@@ -42,10 +51,10 @@ const OrderListPage = () => {
           <thead>
             <tr>
               <th>#</th>
-              <th>User</th>
+              <th>Transaction ID</th>
               <th>Order Date</th>
               <th>Total Amount</th>
-              <th>Status</th>
+              <th>User</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -53,7 +62,7 @@ const OrderListPage = () => {
             {orders.map((order, index) => (
               <tr key={order._id}>
                 <td>{index + 1}</td>
-                <td>{order.user?.username || 'Unknown User'}</td>
+                <td>{order.transactionId}</td>
                 <td>{new Date(order.createdAt).toLocaleDateString()}</td>
                 <td>
                   {new Intl.NumberFormat('id-ID', {
@@ -61,12 +70,12 @@ const OrderListPage = () => {
                     currency: 'IDR',
                   }).format(order.total)}
                 </td>
-                <td>{order.status}</td>
+                <td>{order.user?.username || 'Unknown User'}</td>
                 <td>
                   <Button
                     variant="info"
                     size="sm"
-                    onClick={() => handleShowModal(order)}
+                    onClick={() => handleShowModal(order.transactionId)}
                   >
                     View Details
                   </Button>
@@ -85,14 +94,22 @@ const OrderListPage = () => {
         <Modal.Body>
           {selectedOrder && (
             <>
-              <h5>User: {selectedOrder.user?.username}</h5>
-              <h5>Order Date: {new Date(selectedOrder.createdAt).toLocaleDateString()}</h5>
-              <h5>Total Amount: {new Intl.NumberFormat('id-ID', {
-                style: 'currency',
-                currency: 'IDR',
-              }).format(selectedOrder.total)}</h5>
-              <h5>Status: {selectedOrder.status}</h5>
-              <h5>Address: {selectedOrder.address}</h5>
+              <Row>
+                <Col>
+                  <h5>Transaction ID: {selectedOrder.transactionId}</h5>
+                  <h5>Order Date: {new Date(selectedOrder.createdAt).toLocaleDateString()}</h5>
+                  <h5>Total Amount: {new Intl.NumberFormat('id-ID', {
+                    style: 'currency',
+                    currency: 'IDR',
+                  }).format(selectedOrder.total)}</h5>
+                  <h5>Address: {selectedOrder.address}</h5>
+                </Col>
+                <Col className="text-right">
+                  <h5>User: {selectedOrder.user?.username || 'Unknown User'}</h5>
+                  <h5>Payment Method: {selectedOrder.midtransStatus?.payment_type || 'Pending'}</h5>
+                  <h5>Payment Status: {selectedOrder.midtransStatus?.transaction_status || 'Pending'}</h5>
+                </Col>
+              </Row>
               <hr />
               <h5>Order Items:</h5>
               <Table striped bordered hover>
@@ -100,8 +117,9 @@ const OrderListPage = () => {
                   <tr>
                     <th>#</th>
                     <th>Product Name</th>
+                    <th>Price</th>
                     <th>Quantity</th>
-                    <th>Price (IDR)</th>
+                    <th>Subtotal</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -109,14 +127,18 @@ const OrderListPage = () => {
                     <tr key={idx}>
                       <td>{idx + 1}</td>
                       <td>{item.product?.productName || 'Unknown Product'}</td>
+                      <td>
+                        {new Intl.NumberFormat('id-ID', {
+                          style: 'currency',
+                          currency: 'IDR',
+                        }).format(item.product?.price || 0)}
+                      </td>
                       <td>{item.quantity}</td>
                       <td>
-                        {item.product
-                          ? new Intl.NumberFormat('id-ID', {
-                              style: 'currency',
-                              currency: 'IDR',
-                            }).format(item.product.price)
-                          : '-'}
+                        {new Intl.NumberFormat('id-ID', {
+                          style: 'currency',
+                          currency: 'IDR',
+                        }).format(item.product?.price * item.quantity || 0)}
                       </td>
                     </tr>
                   ))}
