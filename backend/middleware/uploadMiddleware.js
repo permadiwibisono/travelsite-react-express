@@ -1,9 +1,12 @@
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
 
-// Pastikan folder uploads ada
-const uploadsDir = 'uploads/products';
+// Menggunakan /tmp directory untuk Vercel (temporary storage)
+const uploadsDir = path.join(os.tmpdir(), 'uploads', 'products');
+
+// Pastikan folder uploads ada di /tmp
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
