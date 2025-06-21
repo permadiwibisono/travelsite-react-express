@@ -86,18 +86,10 @@ export const postProducts = async (req, res) => {
       } catch (error) {
         console.error('Error processing files:', error);
         fileError = true;
-      } finally{
-        // delete req.files;
-        await deleteFiles(req.files);
       }
     }
 
-    if (fileError) {
-      return res.status(500).json({
-        success: false,
-        message: "Error processing uploaded files"
-      });
-    }
+    if (fileError) throw new Error("Error processing uploaded files");
 
     const newProduct = new Product({
       productName,
@@ -116,6 +108,10 @@ export const postProducts = async (req, res) => {
     });
   } catch (error) {
     console.error('Error saving product:', error);
+    if (req.files?.length) {
+      // delete req.files;
+      await deleteFiles(req.files);
+    }
     res.status(500).json({
       success: false,
       message: 'Server Error',
@@ -175,22 +171,39 @@ export const updateProduct = async (req, res) => {
     }
 
     // Handle image removal
-    if (removeImages && Array.isArray(removeImages)) {
-      removeImages.forEach(imagePath => {
+    if (removeImages) {
+      const removes = JSON.parse(removeImages);
+      const payload = removes.map(img => {
+        const fileUrl = img.replace(/^https?:\/\/[^/]+/, '');
+        return fileUrl.substring(fileUrl.indexOf('/')); // Remove leading slash
+      });
+      payload.forEach(imagePath => {
         const fullPath = path.join(process.cwd(), imagePath.replace('/', ''));
         fs.unlink(fullPath, (err) => {
           if (err) console.error('Error deleting file:', err);
         });
       });
-      
-      product.images = product.images.filter(img => !removeImages.includes(img));
+
+      product.images = product.images.filter(img => !payload.includes(img));
+      console.log('Images after removal:', product.images); // Debug log
     }
 
     // Add new images
+    let fileError = false;
     if (req.files && req.files.length > 0) {
-      const newImagePaths = req.files.map(file => `/${file.path}`);
-      product.images = [...product.images, ...newImagePaths];
+      // Proses multiple images
+      let images = [];
+      try {
+        images = await uploads(req.files);
+        console.log('Uploaded images:', images); // Debug log
+      } catch (error) {
+        console.error('Error processing files:', error);
+        fileError = true;
+      }
+      product.images = [...product.images, ...images];
     }
+
+    if (fileError) throw new Error("Error processing uploaded files");
 
     // Update other fields
     if (productName) product.productName = productName;
@@ -208,16 +221,11 @@ export const updateProduct = async (req, res) => {
     });
   } catch (error) {
     console.error(error.message);
-    
     // Hapus file yang baru diupload jika terjadi error
     if (req.files) {
-      req.files.forEach(file => {
-        fs.unlink(file.path, (err) => {
-          if (err) console.error('Error deleting file:', err);
-        });
-      });
+      // Hapus file yang sudah diupload
+      await deleteFiles(req.files);
     }
-    
     res.status(500).json({
       success: false,
       message: "Server Error",
