@@ -1,4 +1,5 @@
 import Product from "../models/productModel.js";
+import Category from "../models/categoryModel.js";
 import fs from 'fs';
 import path from 'path';
 
@@ -28,6 +29,40 @@ export const getProducts = async (req, res) => {
   }
 };
 
+const uploads = async (files) => {
+  const folder = path.join(process.cwd(), 'uploads/products');
+  if (!fs.existsSync(folder)) {
+    fs.mkdirSync(folder, { recursive: true });
+  }
+  const promises = files.map(file => {
+    const fileName = file.filename;
+    const dest = path.join(folder, fileName);
+    const originalPath = file.path;
+    return new Promise((resolve, reject) => {
+      const readStream = fs.createReadStream(originalPath);
+      const writeStream = fs.createWriteStream(dest);
+      readStream.pipe(writeStream);
+      writeStream.on('finish', () => {
+        resolve(`/uploads/products/${fileName}`); // Return the relative path
+      });
+      readStream.on("error", reject);
+      writeStream.on("error", reject);
+    });
+  });
+  return Promise.all(promises);
+}
+
+const deleteFiles = async (files) => {
+  return Promise.all(files.map(file => {
+    return new Promise((resolve) => {
+      fs.unlink(file.path, (err) => {
+        if (err) console.error('Error deleting file:', err);
+        resolve();
+      });
+    });
+  }));
+};
+
 // Post a new product
 export const postProducts = async (req, res) => {
   const { productName, id_category, desc, price } = req.body;
@@ -42,19 +77,38 @@ export const postProducts = async (req, res) => {
     }
 
     // Proses multiple images
-    const imagePaths = req.files ? req.files.map(file => `/${file.path}`) : [];
-    
+    let fileError = false;
+    let images = [];
+    if (req.files?.length > 0) {
+      try {
+        images = await uploads(req.files);
+        console.log('Uploaded images:', images); // Debug log
+      } catch (error) {
+        console.error('Error processing files:', error);
+        fileError = true;
+      } finally{
+        // delete req.files;
+        await deleteFiles(req.files);
+      }
+    }
+
+    if (fileError) {
+      return res.status(500).json({
+        success: false,
+        message: "Error processing uploaded files"
+      });
+    }
+
     const newProduct = new Product({
       productName,
       id_category,
-      images: imagePaths,
+      images: images,
       desc,
       price: parseFloat(price),
     });
 
     const saved = await newProduct.save();
     await saved.populate('id_category', 'categoryName');
-    
     res.status(201).json({
       success: true,
       message: "Product created successfully",
@@ -62,16 +116,6 @@ export const postProducts = async (req, res) => {
     });
   } catch (error) {
     console.error('Error saving product:', error);
-    
-    // Hapus file yang sudah diupload jika terjadi error
-    if (req.files) {
-      req.files.forEach(file => {
-        fs.unlink(file.path, (err) => {
-          if (err) console.error('Error deleting file:', err);
-        });
-      });
-    }
-    
     res.status(500).json({
       success: false,
       message: 'Server Error',
@@ -228,10 +272,24 @@ export const getProductsByCategory = async (req, res) => {
     const { id_category } = req.params;
     
     console.log('Getting products for category:', id_category); // Debug log
-    
+
+
+    const category = await Category.findOne({ $or: [ {_id: id_category }, { id_category: id_category }] });
+
+    if (!category) {
+      return res.status(200).json({
+        success: true,
+        message: 'No products found for this category',
+        products: [],
+        count: 0
+      });
+    }
+
+    console.log('Found category:', category); // Debug log
+
     // Find products by category with proper population
     const products = await Product.find({ 
-      id_category: id_category 
+      id_category: category._id,
     }).populate('id_category', 'categoryName');
     
     console.log('Found products:', products.length); // Debug log
