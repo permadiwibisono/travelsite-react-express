@@ -18,7 +18,7 @@ const Footer = () => {
         <section className="d-flex justify-content-between align-items-center p-4 mb-0 border-bottom">
           <div className="me-5 d-none d-lg-block">
             <span>
-              <h6>Terhubung dengan kami di sosial media:</h6>
+              <h6>Connect with us on social media:</h6>
             </span>
           </div>
 
@@ -51,33 +51,33 @@ const Footer = () => {
         </section>
         <Row className="mt-5 mb-5">
           <Col md="3" lg="4" xl="3" className="mx-auto mb-4 ">
-            <h6 className="text-uppercase fw-bold mb-4">PHARMORA.ID</h6>
+            <h6 className="text-uppercase fw-bold mb-4">MATA ELANG</h6>
             <p>
-              Pharmora.id adalah apotek online untuk solusi kesehatan yang
-              modern dan terpercaya.
+              Mata Elang is your trusted partner in creating unforgettable
+              travel experiences, connecting you to the beauty of the world.
             </p>
           </Col>
 
           <Col md="2" lg="2" xl="2" className="mx-auto mb-4">
-            <h6 className="text-uppercase fw-bold mb-4">Lainnya</h6>
+            <h6 className="text-uppercase fw-bold mb-4">Quick Links</h6>
             <p>
               <Link as={Link} to="/about-us" className="text-reset">
-                Tentang Kami
+                About Us
               </Link>
             </p>
             <p>
               <Link as={Link} to="/contact" className="text-reset">
-                Chat Kami
+                Contact Us
               </Link>
             </p>
             <p>
-              <Link as={Link} to="/category" className="text-reset">
-                Kategori
+              <Link as={Link} to="/destinations" className="text-reset">
+                Destinations
               </Link>
             </p>
             <p>
-              <Link as={Link} to="/diagnosis" className="text-reset">
-                Diagnosis
+              <Link as={Link} to="/blog" className="text-reset">
+                Travel Blog
               </Link>
             </p>
           </Col>
@@ -90,11 +90,11 @@ const Footer = () => {
             </p>
             <p>
               <Envelope color="white" className="me-3" />
-              pharmora.id@help.com
+              support@mataelang.com
             </p>
             <p>
               <Telephone color="white" className="me-3" />
-              +62 12345678910
+              +62 81234567890
             </p>
           </Col>
 
@@ -102,10 +102,10 @@ const Footer = () => {
             <div className="widget">
               <h6 className="text-uppercase fw-bold mb-4">Our Newsletter</h6>
               <p className="mb-4">
-                Subscribe to our newsletter to get our news & discounts
-                delivered to you.
+                Subscribe to our newsletter to get the latest travel tips and
+                exclusive deals delivered to your inbox.
               </p>
-              <form action="#!">
+              <form action="#">
                 <div className="row gy-4">
                   <div className="col-12">
                     <div className="input-group">
@@ -148,7 +148,7 @@ const Footer = () => {
       <div className="text-center p-4 border-top">
         © 2024 Copyright:
         <Link as={Link} to="/" className="text-reset fw-bold ms-2">
-          Pharmora.id
+          Mata Elang
         </Link>
       </div>
     </footer>

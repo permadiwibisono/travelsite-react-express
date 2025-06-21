@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import api from "../../api";
-import { Container, Row, Col, Card, Button, Alert } from "react-bootstrap";
+import { Container, Row, Col, Card, Button, Alert, Spinner } from "react-bootstrap";
 import Header from "../../Components/User/Header";
 import Footer from "../../Components/User/Footer";
+import FloatingCart from '../../Components/User/FloatingCart';
 
 const ProductsByCategory = () => {
   const { id_category } = useParams();
@@ -11,22 +12,39 @@ const ProductsByCategory = () => {
   const [products, setProducts] = useState([]);
   const [category, setCategory] = useState(null);
   const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // Fetch products based on category or all products
   const fetchProducts = async () => {
     try {
+      setLoading(true);
+      setError(null);
       let response;
       if (id_category) {
-        // Fetch products for specific category
-        response = await api.get(`/products/category/${id_category}`);
+        // Try different possible endpoints for category products
+        try {
+          response = await api.get(`/products/category/${id_category}`);
+        } catch (err) {
+          // Fallback: try alternative endpoint
+          console.log("Trying alternative endpoint for products by category");
+          response = await api.get(`/products?category=${id_category}`);
+        }
       } else {
         // Fetch all products
         response = await api.get('/products');
       }
-      setProducts(response.data.products);
+      
+      // Handle different response structures
+      const productsData = response.data.products || response.data.data || response.data || [];
+      setProducts(Array.isArray(productsData) ? productsData : []);
+      
     } catch (error) {
       console.error("Error fetching products", error);
+      setError("Gagal memuat produk. Silakan coba lagi.");
       setProducts([]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -34,8 +52,25 @@ const ProductsByCategory = () => {
   const fetchCategoryInfo = async () => {
     try {
       if (id_category) {
-        const response = await api.get(`/category/${id_category}`);
-        setCategory(response.data.category);
+        let response;
+        try {
+          response = await api.get(`/category/${id_category}`);
+        } catch (err) {
+          // Fallback: try getting from categories list
+          console.log("Trying to get category from categories list");
+          const categoriesResponse = await api.get('/category');
+          const allCategories = categoriesResponse.data.category || categoriesResponse.data.data || categoriesResponse.data || [];
+          const foundCategory = allCategories.find(cat => cat.id_category === id_category || cat._id === id_category);
+          if (foundCategory) {
+            setCategory(foundCategory);
+            return;
+          }
+          throw err;
+        }
+        
+        // Handle different response structures
+        const categoryData = response.data.category || response.data.data || response.data;
+        setCategory(categoryData);
       } else {
         setCategory(null);
       }
@@ -49,9 +84,12 @@ const ProductsByCategory = () => {
   const fetchAllCategories = async () => {
     try {
       const response = await api.get('/category');
-      setCategories(response.data.category);
+      // Handle different response structures
+      const categoriesData = response.data.category || response.data.data || response.data || [];
+      setCategories(Array.isArray(categoriesData) ? categoriesData : []);
     } catch (error) {
       console.error("Error fetching categories", error);
+      setCategories([]);
     }
   };
 
@@ -68,6 +106,7 @@ const ProductsByCategory = () => {
 
   // Handle category selection
   const handleCategoryClick = (selectedCategoryId) => {
+    console.log("Category clicked:", selectedCategoryId); // Debug log
     // If the selected category is already the current category, navigate to all products
     if (id_category === selectedCategoryId) {
       navigate('/products');
@@ -81,96 +120,246 @@ const ProductsByCategory = () => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
       currency: 'IDR',
+      minimumFractionDigits: 0,
     }).format(price);
+  };
+
+  // Function to render product image (handle both single image and image array)
+  const renderProductImage = (product) => {
+    if (product.images && product.images.length > 0) {
+      return product.images[0];
+    }
+    return product.image || '/placeholder-image.jpg';
+  };
+
+  // Handle "All Products" button click
+  const handleAllProductsClick = () => {
+    navigate('/products');
   };
 
   return (
     <>
       <Header />
-      <Container fluid className="product-container">
+      <FloatingCart />
+      <Container fluid className="product-container py-4">
         <Row>
           {/* Products Section - Left Side */}
           <Col md={9}>
             {/* Category Header */}
-            <Row className="category-header justify-content-center mb-3">
+            <Row className="category-header justify-content-between align-items-center mb-4">
               <Col>
-                <h5>
+                <h4 className="mb-0">
                   {category 
-                    ? `Products in Category: ` 
-                    : 'All Products'}
-                </h5>
+                    ? `${category.categoryName || category.name}` 
+                    : 'Semua Produk'}
+                </h4>
+                <p className="text-muted mt-1">
+                  {products.length} produk ditemukan
+                </p>
               </Col>
+              {id_category && (
+                <Col xs="auto">
+                  <Button 
+                    variant="outline-secondary" 
+                    size="sm"
+                    onClick={handleAllProductsClick}
+                  >
+                    Lihat Semua Produk
+                  </Button>
+                </Col>
+              )}
             </Row>
 
-            {/* Product Cards */}
-            {products.length === 0 ? (
-              <Alert variant="info" className="text-center">
-                No products available in this category.
+            {/* Loading State */}
+            {loading && (
+              <div className="text-center py-5">
+                <Spinner animation="border" role="status" variant="primary">
+                  <span className="visually-hidden">Loading...</span>
+                </Spinner>
+                <p className="mt-2 text-muted">Memuat produk...</p>
+              </div>
+            )}
+
+            {/* Error State */}
+            {error && (
+              <Alert variant="danger" className="text-center">
+                {error}
+                <div className="mt-2">
+                  <Button variant="outline-danger" size="sm" onClick={fetchProducts}>
+                    Coba Lagi
+                  </Button>
+                </div>
               </Alert>
-            ) : (
-              <Row className="g-3 justify-content-start">
-                {products.map((item, index) => (
-                  <Col
-                    key={index}
-                    xs={12}
-                    sm={6}
-                    md={4}
-                    lg={3}
-                    className="d-flex justify-content-start"
-                  >
-                    <Card
-                      className="product-card h-100 border-0 shadow"
-                      onClick={() => handleProductClick(item)}
-                    >
-                      <Card.Img
-                        variant="top"
-                        src={item.image}
-                        className="product-card-img"
-                      />
-                      <Card.Body>
-                        <Card.Title className="product-name">{item.productName}</Card.Title>
-                        <Card.Text className="product-price">{formatIDR(item.price)}</Card.Text>
-                        <Button variant="outline-primary" className="w-100 mt-auto">
-                          Detail
-                        </Button>
-                      </Card.Body>
-                    </Card>
-                  </Col>
-                ))}
-              </Row>
+            )}
+
+            {/* Product Cards */}
+            {!loading && !error && (
+              <>
+                {products.length === 0 ? (
+                  <Alert variant="info" className="text-center py-5">
+                    <h5>Tidak ada produk tersedia</h5>
+                    <p className="mb-3">
+                      {category 
+                        ? `Belum ada produk dalam kategori "${category.categoryName || category.name}".` 
+                        : 'Belum ada produk yang tersedia saat ini.'}
+                    </p>
+                    <Button variant="primary" onClick={handleAllProductsClick}>
+                      Jelajahi Semua Produk
+                    </Button>
+                  </Alert>
+                ) : (
+                  <Row className="g-4">
+                    {products.map((item) => (
+                      <Col
+                        key={item._id}
+                        xs={12}
+                        sm={6}
+                        md={4}
+                        lg={3}
+                      >
+                        <Card
+                          className="product-card h-100 border-0 shadow-sm"
+                          style={{ cursor: 'pointer', transition: 'transform 0.2s, box-shadow 0.2s' }}
+                          onClick={() => handleProductClick(item)}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'translateY(-5px)';
+                            e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = '0 2px 10px rgba(0,0,0,0.1)';
+                          }}
+                        >
+                          <div style={{ height: '200px', overflow: 'hidden' }}>
+                            <Card.Img
+                              variant="top"
+                              src={renderProductImage(item)}
+                              className="product-card-img"
+                              style={{ 
+                                height: '100%', 
+                                objectFit: 'cover',
+                                transition: 'transform 0.3s'
+                              }}
+                              onError={(e) => {
+                                e.target.src = '/placeholder-image.jpg';
+                              }}
+                            />
+                          </div>
+                          <Card.Body className="d-flex flex-column">
+                            <Card.Title 
+                              className="product-name mb-2" 
+                              style={{ 
+                                fontSize: '1rem',
+                                fontWeight: '600',
+                                display: '-webkit-box',
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: 'vertical',
+                                overflow: 'hidden'
+                              }}
+                            >
+                              {item.productName}
+                            </Card.Title>
+                            <Card.Text 
+                              className="product-price mb-3" 
+                              style={{ 
+                                fontSize: '1.1rem',
+                                fontWeight: 'bold',
+                                color: '#007bff'
+                              }}
+                            >
+                              {formatIDR(item.price)}
+                            </Card.Text>
+                            <Button 
+                              variant="outline-primary" 
+                              className="w-100 mt-auto"
+                              size="sm"
+                            >
+                              Lihat Detail
+                            </Button>
+                          </Card.Body>
+                        </Card>
+                      </Col>
+                    ))}
+                  </Row>
+                )}
+              </>
             )}
           </Col>
 
           {/* Categories Section - Right Side */}
-          <Col md={3} className="bg-light py-4">
-            <h5 className="mb-4">Categories</h5>
-            <Row className="g-3">
-              {categories.map((category) => (
-                <Col
-                  xs={12}
-                  key={category.id_category}
-                  className="d-flex justify-content-start"
-                >
+          <Col md={3} className="bg-light py-4" style={{ borderRadius: '10px' }}>
+            <div className="d-flex justify-content-between align-items-center mb-4">
+              <h5 className="mb-0">Kategori</h5>
+              <Button
+                variant={!id_category ? "primary" : "outline-primary"}
+                size="sm"
+                onClick={handleAllProductsClick}
+              >
+                Semua
+              </Button>
+            </div>
+            
+            <div className="d-grid gap-2">
+              {categories.length > 0 ? (
+                categories.map((categoryItem) => (
                   <Card 
-                    className="w-100 category-card border-0 mb-2"
+                    key={categoryItem.id_category || categoryItem._id}
+                    className="category-card border-0 mb-2"
                     style={{ 
-                      backgroundColor: id_category === category.id_category ? '#e9ecef' : 'transparent',
-                      cursor: 'pointer'
+                      backgroundColor: (id_category === categoryItem.id_category || id_category === categoryItem._id) ? '#e3f2fd' : 'white',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      border: (id_category === categoryItem.id_category || id_category === categoryItem._id) ? '2px solid #2196f3' : '1px solid #e0e0e0'
                     }}
-                    onClick={() => handleCategoryClick(category.id_category)}
+                    onClick={() => handleCategoryClick(categoryItem.id_category || categoryItem._id)}
+                    onMouseEnter={(e) => {
+                      if (id_category !== categoryItem.id_category && id_category !== categoryItem._id) {
+                        e.currentTarget.style.backgroundColor = '#f5f5f5';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (id_category !== categoryItem.id_category && id_category !== categoryItem._id) {
+                        e.currentTarget.style.backgroundColor = 'white';
+                      }
+                    }}
                   >
-                    <Card.Body className="d-flex align-items-center">
-                      <div className="me-3 display-6 category-icon">
-                        {category.icon || " "} {/* Placeholder icon */}
+                    <Card.Body className="d-flex align-items-center py-3">
+                      <div 
+                        className="me-3" 
+                        style={{ 
+                          fontSize: '1.5rem',
+                          minWidth: '40px',
+                          textAlign: 'center'
+                        }}
+                      >
+                        {categoryItem.icon || "📦"}
                       </div>
-                      <Card.Title className="category-name mb-0">
-                        {category.categoryName}
-                      </Card.Title>
+                      <div className="flex-grow-1">
+                        <Card.Title 
+                          className="mb-0" 
+                          style={{ 
+                            fontSize: '0.95rem',
+                            fontWeight: (id_category === categoryItem.id_category || id_category === categoryItem._id) ? '600' : '500',
+                            color: (id_category === categoryItem.id_category || id_category === categoryItem._id) ? '#1976d2' : '#333'
+                          }}
+                        >
+                          {categoryItem.categoryName || categoryItem.name}
+                        </Card.Title>
+                      </div>
+                      {(id_category === categoryItem.id_category || id_category === categoryItem._id) && (
+                        <div className="text-primary">
+                          <i className="fas fa-check-circle"></i>
+                        </div>
+                      )}
                     </Card.Body>
                   </Card>
-                </Col>
-              ))}
-            </Row>
+                ))
+              ) : (
+                <div className="text-center py-3">
+                  <p className="text-muted mb-0">Tidak ada kategori tersedia</p>
+                </div>
+              )}
+            </div>
           </Col>
         </Row>
       </Container>

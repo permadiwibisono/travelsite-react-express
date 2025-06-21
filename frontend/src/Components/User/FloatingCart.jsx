@@ -1,13 +1,13 @@
 import React, { useContext, useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Container, Row, Col, Image, Button } from 'react-bootstrap';
+import { Container, Row, Col, Image, Button, Spinner } from 'react-bootstrap';
 import { Cart4, Trash, Plus, Dash } from 'react-bootstrap-icons';
 import { CartContext } from '../../contexts/CartContext';
 import '../../assets/css/FloatingCart.css';
 
 const FloatingCart = ({ hideCartButton }) => {
   const location = useLocation();
-  const { cart, removeFromCart, updateCartItemQuantity } = useContext(CartContext);
+  const { cart, removeFromCart, updateCartItemQuantity, isLoading, getTotalItems, getTotalPrice } = useContext(CartContext);
   const [showCart, setShowCart] = useState(false);
   const navigate = useNavigate();
   const floatingCartRef = useRef(null);
@@ -29,71 +29,186 @@ const FloatingCart = ({ hideCartButton }) => {
   }, []);
 
   const handleCartClick = () => {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      navigate('/login');
+      return;
+    }
     setShowCart(!showCart);
   };
 
   const handleCheckout = () => {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      navigate('/login');
+      return;
+    }
     setShowCart(false);
     navigate('/checkout');
   };
 
   const handleRemoveItem = async (productId) => {
-    try {
-      await removeFromCart(productId);
-    } catch (error) {
-      console.error('Error removing item from cart:', error);
+    const result = await removeFromCart(productId);
+    if (!result.success) {
+      alert('Gagal menghapus item dari keranjang');
     }
   };
 
   const handleQuantityChange = async (productId, newQuantity) => {
-    try {
-      await updateCartItemQuantity(productId, newQuantity);
-    } catch (error) {
-      console.error('Error updating item quantity:', error);
+    if (newQuantity < 1) return;
+    
+    const result = await updateCartItemQuantity(productId, newQuantity);
+    if (!result.success) {
+      alert('Gagal mengubah jumlah item');
     }
+  };
+
+  // Helper function to get image URL with fallback
+  const getImageUrl = (imageUrl) => {
+    if (!imageUrl) return '/placeholder.png';
+    
+    // If it's already a full URL, return as is
+    if (imageUrl.startsWith('http')) return imageUrl;
+    
+    // If it's a relative path, construct full URL
+    // Adjust this based on your backend image serving setup
+    return `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${imageUrl}`;
   };
 
   if (hideCartButton || shouldHide) return null;
 
+  const totalItems = getTotalItems();
+  const totalPrice = getTotalPrice();
+
   return (
     <div className="floating-cart" ref={floatingCartRef}>
-      <Button variant="primary" onClick={handleCartClick} className="floating-cart-button">
-        <Cart4 size={30} />
-        {cart && cart.items.length > 0 && <span className="cart-item-count">{cart.items.length}</span>}
+      <Button 
+        variant="primary" 
+        onClick={handleCartClick} 
+        className="floating-cart-button"
+        disabled={isLoading}
+      >
+        {isLoading ? (
+          <Spinner animation="border" size="sm" />
+        ) : (
+          <>
+            <Cart4 size={30} />
+            {totalItems > 0 && (
+              <span className="cart-item-count">{totalItems}</span>
+            )}
+          </>
+        )}
       </Button>
-      {showCart && cart && (
+
+      {showCart && (
         <div className="floating-cart-details shadow">
           <Container>
             <Row>
               <Col>
-                <h5>Cart</h5>
-                {cart.items.map(item => (
-                  <div key={item.product._id} className="cart-item">
-                    <Image src={item.product.image || '/placeholder.png'} thumbnail />
-                    <div className="cart-item-details">
-                      <h6>{item.product.productName}</h6>
-                      <p>
-                        <span className="mr-2">{item.quantity} x</span>
-                        <span>{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(item.product.price)}</span>
-                      </p>
-                      <div className="cart-item-actions">
-                        <Button variant="link" onClick={() => handleQuantityChange(item.product._id, item.quantity - 1)}>
-                          <Dash />
-                        </Button>
-                        <span className="mx-2">{item.quantity}</span>
-                        <Button variant="link" onClick={() => handleQuantityChange(item.product._id, item.quantity + 1)}>
-                          <Plus />
-                        </Button>
-                        <Button variant="link" onClick={() => handleRemoveItem(item.product._id)} className="ml-3">
-                          <Trash />
-                        </Button>
-                      </div>
-                    </div>
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                  <h5 className="mb-0">Keranjang</h5>
+                  <Button 
+                    variant="link" 
+                    className="p-0"
+                    onClick={() => setShowCart(false)}
+                  >
+                    ×
+                  </Button>
+                </div>
+
+                {isLoading ? (
+                  <div className="text-center py-3">
+                    <Spinner animation="border" />
                   </div>
-                ))}
-                <Button variant="success" onClick={handleCheckout} disabled={cart.items.length === 0} className="checkout-button">
-                  Checkout
-                </Button>
+                ) : !cart || !cart.items || cart.items.length === 0 ? (
+                  <div className="text-center py-4">
+                    <p className="text-muted">Keranjang kosong</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="cart-items-container" style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                      {cart.items.map(item => (
+                        <div key={item.product._id} className="cart-item mb-3 p-2 border rounded">
+                          <Row className="align-items-center">
+                            <Col xs={3}>
+                              <Image 
+                                src={getImageUrl(item.product.image)} 
+                                alt={item.product.productName}
+                                thumbnail 
+                                style={{ width: '60px', height: '60px', objectFit: 'cover' }}
+                                onError={(e) => {
+                                  e.target.src = '/placeholder.png';
+                                }}
+                              />
+                            </Col>
+                            <Col xs={9}>
+                              <div className="cart-item-details">
+                                <h6 className="mb-1" style={{ fontSize: '0.9rem' }}>
+                                  {item.product.productName}
+                                </h6>
+                                <p className="mb-2 text-muted" style={{ fontSize: '0.8rem' }}>
+                                  {new Intl.NumberFormat('id-ID', { 
+                                    style: 'currency', 
+                                    currency: 'IDR' 
+                                  }).format(item.product.price)}
+                                </p>
+                                <div className="d-flex justify-content-between align-items-center">
+                                  <div className="cart-item-actions d-flex align-items-center">
+                                    <Button 
+                                      variant="outline-secondary" 
+                                      size="sm"
+                                      onClick={() => handleQuantityChange(item.product._id, item.quantity - 1)}
+                                      disabled={isLoading}
+                                    >
+                                      <Dash size={12} />
+                                    </Button>
+                                    <span className="mx-2 fw-bold">{item.quantity}</span>
+                                    <Button 
+                                      variant="outline-secondary" 
+                                      size="sm"
+                                      onClick={() => handleQuantityChange(item.product._id, item.quantity + 1)}
+                                      disabled={isLoading}
+                                    >
+                                      <Plus size={12} />
+                                    </Button>
+                                  </div>
+                                  <Button 
+                                    variant="outline-danger" 
+                                    size="sm"
+                                    onClick={() => handleRemoveItem(item.product._id)}
+                                    disabled={isLoading}
+                                  >
+                                    <Trash size={12} />
+                                  </Button>
+                                </div>
+                              </div>
+                            </Col>
+                          </Row>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="cart-summary mt-3 pt-3 border-top">
+                      <div className="d-flex justify-content-between mb-2">
+                        <strong>Total: </strong>
+                        <strong>
+                          {new Intl.NumberFormat('id-ID', { 
+                            style: 'currency', 
+                            currency: 'IDR' 
+                          }).format(totalPrice)}
+                        </strong>
+                      </div>
+                      <Button 
+                        variant="success" 
+                        onClick={handleCheckout} 
+                        disabled={cart.items.length === 0 || isLoading} 
+                        className="w-100"
+                      >
+                        Checkout ({totalItems} item{totalItems !== 1 ? 's' : ''})
+                      </Button>
+                    </div>
+                  </>
+                )}
               </Col>
             </Row>
           </Container>

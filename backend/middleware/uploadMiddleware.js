@@ -1,30 +1,42 @@
 import multer from 'multer';
 import path from 'path';
+import fs from 'fs';
+
+// Pastikan folder uploads ada
+const uploadsDir = 'uploads/products';
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/');
+    cb(null, uploadsDir);
   },
   filename: (req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname}`);
+    // Generate unique filename
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, `product-${uniqueSuffix}${path.extname(file.originalname)}`);
   }
 });
 
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = /jpeg|jpg|png/;
+  const allowedTypes = /jpeg|jpg|png|webp/;
   const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
   const mimetype = allowedTypes.test(file.mimetype);
 
   if (extname && mimetype) {
     return cb(null, true);
   } else {
-    cb('Error: Images Only!');
+    cb(new Error('Error: Images Only! (jpeg, jpg, png, webp)'));
   }
 };
 
 const upload = multer({
   storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  limits: { 
+    fileSize: 10 * 1024 * 1024, // 10MB limit per file
+    files: 10 // Maximum 10 files
+  },
   fileFilter: fileFilter
 });
 

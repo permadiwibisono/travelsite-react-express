@@ -1,10 +1,21 @@
-import React from 'react';
-import { useLocation } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Container, Card, Row, Col } from 'react-bootstrap';
 
 const OrderSuccess = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const order = location.state?.order;
+
+  useEffect(() => {
+    // Navigasi otomatis ke /home setelah 3 detik
+    const timer = setTimeout(() => {
+      navigate('/');
+    }, 3000);
+
+    // Bersihkan timer jika komponen di-unmount lebih awal
+    return () => clearTimeout(timer);
+  }, [navigate]);
 
   return (
     <Container className="mt-5">
@@ -21,6 +32,7 @@ const OrderSuccess = () => {
                 </div>
               )}
               <p>Silakan cek email Anda untuk detail lebih lanjut.</p>
+              <p>Anda akan diarahkan ke halaman beranda dalam beberapa detik…</p>
             </Card.Body>
           </Card>
         </Col>

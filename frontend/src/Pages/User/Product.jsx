@@ -4,6 +4,7 @@ import Pagination from "react-js-pagination";
 import { Container, Row, Col, Card, Button, Form } from "react-bootstrap";
 import Header from "../../Components/User/Header";
 import Footer from "../../Components/User/Footer";
+import FloatingCart from "../../Components/User/FloatingCart";
 import api from "../../api";
 
 const Product = () => {
@@ -68,7 +69,7 @@ const Product = () => {
         setProducts(response.data.products);
       } else {
         setCategoryFilter(categoryName);
-        const response = await api.get(`/product/category/${id_category}`);
+        const response = await api.get(`/products/category/${id_category}`);
         setProducts(response.data.products);
       }
       setCurrentPage(1);
@@ -77,8 +78,13 @@ const Product = () => {
     }
   };
 
-  // Paginate products
-  const paginatedProducts = products.slice(
+  // Filter products by search query
+  const filteredProducts = products.filter((product) =>
+    product.productName.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // Paginate filtered products
+  const paginatedProducts = filteredProducts.slice(
     (currentPage - 1) * pageSize,
     currentPage * pageSize
   );
@@ -91,19 +97,29 @@ const Product = () => {
     return new Intl.NumberFormat("id-ID", {
       style: "currency",
       currency: "IDR",
+      minimumFractionDigits: 0,
     }).format(price);
+  };
+
+  // Function to render product image (first image from array or fallback to single image)
+  const renderProductImage = (product) => {
+    if (product.images && product.images.length > 0) {
+      return product.images[0];
+    }
+    return product.image;
   };
 
   return (
     <>
       <Header />
+      <FloatingCart />
       <Container className="product-container py-4">
         <Row>
           {/* Sidebar Categories */}
           <Col md={3} className="mb-4">
             <Card className="border-0 shadow">
               <Card.Body>
-                <Card.Title className="text-center mb-3">Categories</Card.Title>
+                <Card.Title className="text-center mb-3">Kategori</Card.Title>
                 <ul className="list-group list-group-flush">
                   {categories.map((category) => (
                     <li key={category.id_category} className="list-group-item border-0 p-1">
@@ -123,9 +139,12 @@ const Product = () => {
             <Form.Control
               type="text"
               className="mt-4"
-              placeholder="Search products"
+              placeholder="Cari produk..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1); // Reset to first page when searching
+              }}
             />
           </Col>
 
@@ -133,53 +152,53 @@ const Product = () => {
           <Col md={9}>
             <Row>
               {paginatedProducts.length > 0 ? (
-                paginatedProducts
-                  .filter((product) =>
-                    product.productName.toLowerCase().includes(searchQuery.toLowerCase())
-                  )
-                  .map((product) => (
-                    <Col md={4} lg={3} className="mb-4" key={product._id}>
-                      <Card className="product-card h-100 border-0 shadow">
-                        <Card.Img
-                          variant="top"
-                          src={product.image}
-                          className="product-card-img"
-                          style={{ height: "200px", objectFit: "cover" }}
-                        />
-                        <Card.Body>
-                          <Card.Title className="product-name text-truncate">
-                            {product.productName}
-                          </Card.Title>
-                          <Card.Text className="product-price">
-                            {formatIDR(product.price)}
-                          </Card.Text>
-                          <Button
-                            variant="outline-primary"
-                            className="w-100"
-                            onClick={() => navigate(`/products/detail-product/${product._id}`)}
-                          >
-                            View Details
-                          </Button>
-                        </Card.Body>
-                      </Card>
-                    </Col>
-                  ))
+                paginatedProducts.map((product) => (
+                  <Col md={4} lg={3} className="mb-4" key={product._id}>
+                    <Card className="product-card h-100 border-0 shadow">
+                      <Card.Img
+                        variant="top"
+                        src={renderProductImage(product)}
+                        className="product-card-img"
+                        style={{ height: "200px", objectFit: "cover" }}
+                      />
+                      <Card.Body className="d-flex flex-column">
+                        <Card.Title className="product-name text-truncate">
+                          {product.productName}
+                        </Card.Title>
+                        <Card.Text className="product-price">
+                          {formatIDR(product.price)}
+                        </Card.Text>
+                        <Button
+                          variant="outline-primary"
+                          className="w-100 mt-auto"
+                          onClick={() => navigate(`/products/detail-product/${product._id}`)}
+                        >
+                          Lihat Detail
+                        </Button>
+                      </Card.Body>
+                    </Card>
+                  </Col>
+                ))
               ) : (
-                <p>No products found.</p>
+                <Col className="text-center">
+                  <p>Tidak ada produk ditemukan.</p>
+                </Col>
               )}
             </Row>
 
-            <div className="d-flex justify-content-center mt-4">
-              <Pagination
-                activePage={currentPage}
-                itemsCountPerPage={pageSize}
-                totalItemsCount={products.length}
-                pageRangeDisplayed={5}
-                onChange={handlePageChange}
-                itemClass="page-item"
-                linkClass="page-link"
-              />
-            </div>
+            {filteredProducts.length > pageSize && (
+              <div className="d-flex justify-content-center mt-4">
+                <Pagination
+                  activePage={currentPage}
+                  itemsCountPerPage={pageSize}
+                  totalItemsCount={filteredProducts.length}
+                  pageRangeDisplayed={5}
+                  onChange={handlePageChange}
+                  itemClass="page-item"
+                  linkClass="page-link"
+                />
+              </div>
+            )}
           </Col>
         </Row>
       </Container>

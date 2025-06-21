@@ -4,17 +4,18 @@ const ProductSchema = new mongoose.Schema(
   {
     productName: {
       type: String,
-      required: false,
+      required: true, // Ubah ke true karena nama produk harus ada
       unique: true,
     },
     id_category: {
-      type: String,
-      required: false,
+      type: mongoose.Schema.Types.ObjectId, // Lebih baik menggunakan ObjectId
+      ref: 'Category',
+      required: true,
     },
-    image: {
-      type: String,
+    images: [{
+      type: String, // Array of image paths
       required: false,
-    },
+    }],
     desc: {
       type: String,
       required: false,
@@ -23,6 +24,10 @@ const ProductSchema = new mongoose.Schema(
       type: Number,
       required: true,
       default: 0,
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
     },
   },
   {

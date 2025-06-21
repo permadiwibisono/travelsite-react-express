@@ -3,7 +3,7 @@ import { Link, useParams, useNavigate } from 'react-router-dom';
 import { Plus, Dash } from 'react-bootstrap-icons';
 import Header from '../../Components/User/Header';
 import Footer from '../../Components/User/Footer';
-import { Container, Row, Col, Breadcrumb, Image, Button, Modal } from 'react-bootstrap';
+import { Container, Row, Col, Breadcrumb, Image, Button, Modal, Carousel } from 'react-bootstrap';
 import '../../assets/css/DetailProduct.css';
 import api from '../../api';
 import FloatingCart from '../../Components/User/FloatingCart';
@@ -78,6 +78,48 @@ const DetailProduct = () => {
     }
   };
 
+  // Function to render product images (up to 5)
+  const renderProductImages = () => {
+    if (!product?.images || product.images.length === 0) {
+      return (
+        <Image 
+          src={product?.image || '/placeholder-image.jpg'} 
+          alt={product?.productName || 'Product'} 
+          fluid 
+        />
+      );
+    }
+
+    // Display up to 5 images
+    const imagesToShow = product.images.slice(0, 5);
+
+    if (imagesToShow.length === 1) {
+      return (
+        <Image 
+          src={imagesToShow[0]} 
+          alt={product.productName} 
+          fluid 
+        />
+      );
+    }
+
+    return (
+      <Carousel>
+        {imagesToShow.map((image, index) => (
+          <Carousel.Item key={index}>
+            <Image
+              className="d-block w-100"
+              src={image}
+              alt={`${product.productName} - Image ${index + 1}`}
+              fluid
+              style={{ height: '400px', objectFit: 'cover' }}
+            />
+          </Carousel.Item>
+        ))}
+      </Carousel>
+    );
+  };
+
   return (
     <>
       <Header />
@@ -92,40 +134,48 @@ const DetailProduct = () => {
           </Breadcrumb.Item>
           <Breadcrumb.Item active>{product?.productName}</Breadcrumb.Item>
         </Breadcrumb>
+        
         {product ? (
           <Row className="detail-product">
-            <Col md={4} className="detail-product-image">
-              <Image src={product.image} alt={product.productName} fluid />
+            <Col md={6} className="detail-product-image">
+              {renderProductImages()}
             </Col>
-            <Col md={8} className="product-details">
+            <Col md={6} className="product-details">
               <h3>{product.productName}</h3>
               <h4 className="detail-product-price">
                 <span>{formatRupiah(product.price)}</span>
               </h4>
-              <p className="per-strip">Per STRIP</p>
               <div className="detail-product-actions">
-                <Button variant="primary" className="cart-button" onClick={handleAddToCart}>
-                  + Tambah ke Keranjang
-                </Button>
-                <div className="d-flex justify-content-between align-items-center mt-2">
+                <div className="d-flex justify-content-between align-items-center mb-3">
                   <Button variant="outline-primary" className="cart-button" onClick={handleDecrement}>
                     <Dash />
                   </Button>
-                  <span>{itemCount}</span>
+                  <span className="mx-3 fw-bold">{itemCount}</span>
                   <Button variant="primary" className="cart-button" onClick={handleIncrement}>
                     <Plus />
                   </Button>
                 </div>
+                <Button variant="primary" className="cart-button w-100" onClick={handleAddToCart}>
+                  + Tambah ke Keranjang
+                </Button>
               </div>
               <hr />
               <div className="product-deskripsi">
                 <h3>Deskripsi</h3>
-                <p>{product.desc}</p>
+                {product.desc ? (
+                  product.desc.split('\n').map((line, index) => (
+                    <p key={index}>{line}</p>
+                  ))
+                ) : (
+                  <p>Tidak ada deskripsi tersedia.</p>
+                )}
               </div>
             </Col>
           </Row>
         ) : (
-          <p>Loading...</p>
+          <div className="text-center py-5">
+            <p>Loading...</p>
+          </div>
         )}
       </Container>
 

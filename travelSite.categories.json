@@ -1,0 +1,45 @@
+[{
+  "_id": {
+    "$oid": "68414e3ac4ac40cc60328238"
+  },
+  "id_category": "68414e3ac4ac40cc60328237",
+  "categoryName": "Penginapan",
+  "icon": "🧳",
+  "createdAt": {
+    "$date": "2025-06-05T07:58:50.373Z"
+  },
+  "updatedAt": {
+    "$date": "2025-06-05T07:58:50.373Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "684580529dc81a45fccdc862"
+  },
+  "id_category": "684580529dc81a45fccdc861",
+  "categoryName": "Kendaraan",
+  "icon": "🚗",
+  "createdAt": {
+    "$date": "2025-06-08T12:21:38.999Z"
+  },
+  "updatedAt": {
+    "$date": "2025-06-08T12:22:45.643Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "684580a09dc81a45fccdc86a"
+  },
+  "id_category": "684580a09dc81a45fccdc869",
+  "categoryName": "Wisata",
+  "icon": "🏕",
+  "createdAt": {
+    "$date": "2025-06-08T12:22:56.267Z"
+  },
+  "updatedAt": {
+    "$date": "2025-06-08T12:22:56.267Z"
+  },
+  "__v": 0
+}]

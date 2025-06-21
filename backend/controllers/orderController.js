@@ -10,78 +10,101 @@ export const checkoutCart = async (req, res) => {
 
     try {
         const cart = await Cart.findOne({ user: userId }).populate('items.product');
-
         if (!cart || cart.items.length === 0) {
             return res.status(400).json({ msg: 'Cart is empty' });
         }
 
         let total = 0;
-        const orderItems = cart.items.map(item => {
-            total += item.product.price * item.quantity;
+        const itemDetails = cart.items.map(item => {
+            const itemTotal = item.product.price * item.quantity;
+            total += itemTotal;
             return {
-                id: item.product._id.toString(),
+                id: item.product._id,
                 price: item.product.price,
                 quantity: item.quantity,
-                name: item.product.productName,
+                name: item.product.productName
             };
         });
 
+        const orderId = `ORDER-${Date.now()}`;
+
+        // Midtrans transaction parameters
         const parameter = {
             transaction_details: {
-                order_id: `ORDER-${Date.now()}`, // ID unik untuk transaksi
-                gross_amount: total,
+                order_id: orderId,
+                gross_amount: total
             },
-            item_details: orderItems,
+            item_details: itemDetails,
             customer_details: {
-                email: req.user.email,
                 first_name: req.user.username,
-                phone: req.user.phone || '08123456789',
-                shipping_address: address,
+                email: req.user.email,
+                phone: req.user.phone || '+628123456789',
+                billing_address: {
+                    first_name: req.user.username,
+                    email: req.user.email,
+                    phone: req.user.phone || '+628123456789',
+                    address: address,
+                    city: 'Jakarta',
+                    postal_code: '12345',
+                    country_code: 'IDN'
+                },
+                shipping_address: {
+                    first_name: req.user.username,
+                    email: req.user.email,
+                    phone: req.user.phone || '+628123456789',
+                    address: address,
+                    city: 'Jakarta',
+                    postal_code: '12345',
+                    country_code: 'IDN'
+                }
             },
             callbacks: {
-                finish: 'http://localhost:3000/', // URL untuk kembali ke website
+                finish: 'http://localhost:3000/order-success'
             }
         };
 
-        console.log(parameter)
+        console.log('Midtrans Parameter:', parameter);
 
+        // Create transaction with Midtrans
         const transaction = await snap.createTransaction(parameter);
 
+        // Save order to database
         const order = new Order({
             user: userId,
             items: cart.items,
-            total: total,
-            address: address,
+            total,
+            address,
             paymentLink: transaction.redirect_url,
-            transactionId: parameter.transaction_details.order_id // Simpan transaction ID
+            transactionId: orderId,
+            status: 'Pending'
         });
 
         await order.save();
-
-        // Kosongkan keranjang setelah checkout berhasil
         await Cart.findOneAndDelete({ user: userId });
 
-        res.status(201).json({ 
-            msg: 'Checkout successful', 
-            paymentUrl: transaction.redirect_url, 
+        res.status(201).json({
+            msg: 'Checkout successful',
+            paymentUrl: transaction.redirect_url,
+            token: transaction.token,
             order,
-            finishUrl: 'http://localhost:3000/order/success' 
         });
     } catch (error) {
-        console.error(error.message);
-        res.status(500).send('Server error');
+        console.error('Checkout error:', error);
+        res.status(500).json({ 
+            msg: 'Server error during checkout',
+            error: error.message 
+        });
     }
 };
-
 
 export const handleMidtransNotification = async (req, res) => {
     try {
         const notification = req.body;
-        const statusResponse = await snap.transaction.notification(notification);
-        console.log(statusResponse)
+        console.log('Midtrans Notification:', notification);
 
-        const orderId = statusResponse.order_id;
-        const transactionStatus = statusResponse.transaction_status;
+        const orderId = notification.order_id;
+        const transactionStatus = notification.transaction_status;
+        const fraudStatus = notification.fraud_status;
 
         let order = await Order.findOne({ transactionId: orderId });
         if (!order) {
@@ -89,33 +112,46 @@ export const handleMidtransNotification = async (req, res) => {
         }
 
         // Update order status based on Midtrans transaction status
-        switch(transactionStatus) {
-            case 'capture':
-            case 'settlement':
+        if (transactionStatus == 'capture') {
+            if (fraudStatus == 'challenge') {
+                order.status = 'Challenge';
+            } else if (fraudStatus == 'accept') {
                 order.status = 'Successful';
-                break;
-            case 'cancel':
-            case 'expire':
-                order.status = 'Cancelled';
-                break;
-            case 'pending':
-                order.status = 'Pending';
-                break;
-            default:
-                order.status = 'Failed';
+            }
+        } else if (transactionStatus == 'settlement') {
+            order.status = 'Successful';
+        } else if (transactionStatus == 'cancel' || 
+                   transactionStatus == 'deny' || 
+                   transactionStatus == 'expire') {
+            order.status = 'Cancelled';
+        } else if (transactionStatus == 'pending') {
+            order.status = 'Pending';
+        } else if (transactionStatus == 'refund') {
+            order.status = 'Refunded';
+        } else if (transactionStatus == 'partial_refund') {
+            order.status = 'Partial Refund';
+        } else {
+            order.status = 'Failed';
         }
 
         await order.save();
 
         res.status(200).json({
             msg: 'Payment status updated',
-            status: transactionStatus,
-            redirectUrl: '/' // Redirect user to success page
+            status: transactionStatus
         });
     } catch (error) {
-        console.error(error.message);
-        res.status(500).send('Server error');
+        console.error('Notification error:', error);
+        res.status(500).json({ 
+            msg: 'Server error processing notification',
+            error: error.message 
+        });
     }
+};
+
+// Remove Xendit notification handler since we're using Midtrans
+export const handleXenditNotification = async (req, res) => {
+    res.status(404).json({ msg: 'Xendit handler deprecated, using Midtrans' });
 };
 
 export const orderSuccessPage = async (req, res) => {
@@ -140,22 +176,19 @@ export const orderSuccessPage = async (req, res) => {
     }
 };
 
-
 export const getOrder = async (req, res) => {
     const userId = req.user.id;
 
     try {
-        // Ambil semua pesanan milik pengguna berdasarkan userId
         const orders = await Order.find({ user: userId }).populate({
             path: 'items.product',
-            select: '-createdAt -updatedAt' // Mengabaikan timestamps
+            select: '-createdAt -updatedAt'
         });
 
         if (!orders || orders.length === 0) {
             return res.status(404).json({ msg: 'No orders found' });
         }
 
-        // Modifikasi setiap produk dalam items untuk menambahkan URL gambar lengkap
         const ordersWithImageUrls = orders.map(order => ({
             ...order._doc,
             items: order.items.map(item => ({
@@ -180,38 +213,41 @@ export const getOrderById = async (req, res) => {
     const { orderId } = req.params;
 
     try {
-        // Cari order berdasarkan orderId
         const order = await Order.findOne({ transactionId: orderId }).populate('user', 'username').populate('items.product');
-        console.log(order)
+        
         if (!order) {
             return res.status(404).json({ msg: 'Order not found' });
         }
 
-        // Panggil API Midtrans untuk mendapatkan status order
-        const midtransResponse = await axios.get(
-            `https://api.sandbox.midtrans.com/v2/${order.transactionId}/status`,
-            {
-                headers: {
-                    Accept: 'application/json',
-                    'Content-Type': 'application/json',
-                    Authorization: `Basic U0ItTWlkLXNlcnZlci0xVWgwZjJSLUhPb3pLTlBnczMwcjRVUGs=`
+        try {
+            // Get transaction status from Midtrans
+            const midtransResponse = await axios.get(
+                `https://api.sandbox.midtrans.com/v2/${order.transactionId}/status`,
+                {
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                        Authorization: `Basic ${Buffer.from('SB-Mid-server-CEsX-3UaJAvJb8VUlnppza10:').toString('base64')}`
+                    }
                 }
-            }
-        );
+            );
 
-        // Gabungkan informasi order lokal dengan status dari Midtrans
-        const updatedOrder = {
-            ...order._doc,
-            midtransStatus: midtransResponse.data
-        };
+            const updatedOrder = {
+                ...order._doc,
+                midtransStatus: midtransResponse.data
+            };
 
-        res.json(updatedOrder);
+            res.json(updatedOrder);
+        } catch (midtransError) {
+            console.log('Midtrans API error:', midtransError.message);
+            // Return order without Midtrans status if API call fails
+            res.json(order);
+        }
     } catch (error) {
         console.error(error.message);
         res.status(500).send('Server error');
     }
 };
-
 
 export const getAllOrder = async (req, res) => {
     try {

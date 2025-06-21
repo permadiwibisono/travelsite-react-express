@@ -1,0 +1,51 @@
+[{
+  "_id": {
+    "$oid": "68414e71c4ac40cc6032823f"
+  },
+  "productName": "Villa Bogor Indah",
+  "id_category": "68414e3ac4ac40cc60328237",
+  "image": "/uploads\\1749110385185-dummyvilla.jpeg",
+  "desc": "Villa",
+  "price": 2100000,
+  "createdAt": {
+    "$date": "2025-06-05T07:59:45.292Z"
+  },
+  "updatedAt": {
+    "$date": "2025-06-05T07:59:45.292Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "684580d69dc81a45fccdc871"
+  },
+  "productName": "Kapal Marina Pulau Seribu",
+  "id_category": "684580529dc81a45fccdc861",
+  "image": "/uploads\\1749385436362-dummykapal.jpg",
+  "desc": "Per destinasi",
+  "price": 135000,
+  "createdAt": {
+    "$date": "2025-06-08T12:23:50.370Z"
+  },
+  "updatedAt": {
+    "$date": "2025-06-08T12:24:07.134Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "684581479dc81a45fccdc87a"
+  },
+  "productName": "Pulau Pramuka - Pulau Seribu",
+  "id_category": "684580a09dc81a45fccdc869",
+  "image": "/uploads\\1749385543583-dummypulau.jpg",
+  "desc": "Per tiket",
+  "price": 3200000,
+  "createdAt": {
+    "$date": "2025-06-08T12:25:43.610Z"
+  },
+  "updatedAt": {
+    "$date": "2025-06-08T12:25:43.610Z"
+  },
+  "__v": 0
+}]

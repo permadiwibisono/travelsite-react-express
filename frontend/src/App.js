@@ -1,5 +1,5 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import React, {useEffect} from 'react';
+import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 // AUTH
@@ -37,10 +37,41 @@ import CategoryListPage from './Pages/Admin/Category';
 import PrivateRoute from './Auth/PrivateRoute';
 import AdminRoute from './Auth/AdminRoute';
 
+const CheckTokenExpiration = () => {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkTokenExpiration = () => {
+      const tokenTimestamp = localStorage.getItem('tokenTimestamp');
+      if (tokenTimestamp) {
+        const now = new Date().getTime();
+        const elapsed = now - parseInt(tokenTimestamp, 10);
+        const expirationTime = 60 * 60 * 1000; // 1 jam
+
+        if (elapsed >= expirationTime) {
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('userData');
+          localStorage.removeItem('tokenTimestamp');
+          alert("Sesi Anda telah berakhir. Silakan login kembali.");
+          navigate('/login');
+        }
+      }
+    };
+
+    const interval = setInterval(checkTokenExpiration, 60000); // periksa setiap 1 menit
+    checkTokenExpiration(); // langsung periksa saat mount
+
+    return () => clearInterval(interval);
+  }, [navigate]);
+
+  return null;
+};
+
 const App = () => {
   return (
     <CartProvider>
       <Router>
+        <CheckTokenExpiration />
         <div className="app-container">
           <Routes>
             {/* PUBLIC ROUTES */}
@@ -49,6 +80,7 @@ const App = () => {
             <Route path="/category" element={<Category />} />
             <Route path="/about-us" element={<AboutUs />} />
             <Route path="/products" element={<ProductsByCategory />} />
+            <Route path="/" element={<Home />} />
             <Route path="/products/:id_category" element={<ProductsByCategory />} />
             <Route path="/products/detail-product/:id" element={<DetailProduct />} />
 
