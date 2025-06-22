@@ -1,7 +1,7 @@
 import Product from "../models/productModel.js";
 import Category from "../models/categoryModel.js";
-import fs from 'fs';
 import path from 'path';
+import * as storage from "../utils/storage.js";
 
 // Get all products
 export const getProducts = async (req, res) => {
@@ -29,39 +29,13 @@ export const getProducts = async (req, res) => {
   }
 };
 
-const uploads = async (files) => {
-  const folder = path.join(process.cwd(), 'uploads/products');
-  if (!fs.existsSync(folder)) {
-    fs.mkdirSync(folder, { recursive: true });
-  }
-  const promises = files.map(file => {
-    const fileName = file.filename;
-    const dest = path.join(folder, fileName);
-    const originalPath = file.path;
-    return new Promise((resolve, reject) => {
-      const readStream = fs.createReadStream(originalPath);
-      const writeStream = fs.createWriteStream(dest);
-      readStream.pipe(writeStream);
-      writeStream.on('finish', () => {
-        resolve(`/uploads/products/${fileName}`); // Return the relative path
-      });
-      readStream.on("error", reject);
-      writeStream.on("error", reject);
-    });
-  });
-  return Promise.all(promises);
+const cleanup = async (req) => {
+  if (!req.files?.length) return Promise.resolve();
+  const keys = req.files.map(item => item.path);
+  console.log("START clean up temp files");
+  await storage.deleteObjects(keys);
+  console.log("DONE clean up temp files");
 }
-
-const deleteFiles = async (files) => {
-  return Promise.all(files.map(file => {
-    return new Promise((resolve) => {
-      fs.unlink(file.path, (err) => {
-        if (err) console.error('Error deleting file:', err);
-        resolve();
-      });
-    });
-  }));
-};
 
 // Post a new product
 export const postProducts = async (req, res) => {
@@ -81,7 +55,7 @@ export const postProducts = async (req, res) => {
     let images = [];
     if (req.files?.length > 0) {
       try {
-        images = await uploads(req.files);
+        images = await storage.putObjects(req.files, "assets", "products");
         console.log('Uploaded images:', images); // Debug log
       } catch (error) {
         console.error('Error processing files:', error);
@@ -101,6 +75,7 @@ export const postProducts = async (req, res) => {
 
     const saved = await newProduct.save();
     await saved.populate('id_category', 'categoryName');
+    await cleanup(req);
     res.status(201).json({
       success: true,
       message: "Product created successfully",
@@ -108,10 +83,7 @@ export const postProducts = async (req, res) => {
     });
   } catch (error) {
     console.error('Error saving product:', error);
-    if (req.files?.length) {
-      // delete req.files;
-      await deleteFiles(req.files);
-    }
+    await cleanup(req);
     res.status(500).json({
       success: false,
       message: 'Server Error',
@@ -172,17 +144,14 @@ export const updateProduct = async (req, res) => {
 
     // Handle image removal
     if (removeImages) {
-      const removes = JSON.parse(removeImages);
+      const removes = typeof removeImages === "string"? JSON.parse(removeImages): removeImages;
       const payload = removes.map(img => {
         const fileUrl = img.replace(/^https?:\/\/[^/]+/, '');
         return fileUrl.substring(fileUrl.indexOf('/')); // Remove leading slash
       });
-      payload.forEach(imagePath => {
-        const fullPath = path.join(process.cwd(), imagePath.replace('/', ''));
-        fs.unlink(fullPath, (err) => {
-          if (err) console.error('Error deleting file:', err);
-        });
-      });
+
+      const keys = payload.map(imagePath => path.join(process.cwd(), imagePath.replace('/', '')));
+      await storage.deleteObjects(keys);
 
       product.images = product.images.filter(img => !payload.includes(img));
       console.log('Images after removal:', product.images); // Debug log
@@ -194,7 +163,7 @@ export const updateProduct = async (req, res) => {
       // Proses multiple images
       let images = [];
       try {
-        images = await uploads(req.files);
+        images = await storage.putObjects(req.files, "assets", "products");
         console.log('Uploaded images:', images); // Debug log
       } catch (error) {
         console.error('Error processing files:', error);
@@ -213,7 +182,7 @@ export const updateProduct = async (req, res) => {
 
     const updatedProduct = await product.save();
     await updatedProduct.populate('id_category', 'categoryName');
-    
+    await cleanup(req);
     res.status(200).json({ 
       success: true,
       message: "Product updated successfully",
@@ -222,10 +191,7 @@ export const updateProduct = async (req, res) => {
   } catch (error) {
     console.error(error.message);
     // Hapus file yang baru diupload jika terjadi error
-    if (req.files) {
-      // Hapus file yang sudah diupload
-      await deleteFiles(req.files);
-    }
+    await cleanup(req);
     res.status(500).json({
       success: false,
       message: "Server Error",
@@ -250,12 +216,8 @@ export const deleteProduct = async (req, res) => {
 
     // Delete associated images
     if (product.images && product.images.length > 0) {
-      product.images.forEach(imagePath => {
-        const fullPath = path.join(process.cwd(), imagePath.replace('/', ''));
-        fs.unlink(fullPath, (err) => {
-          if (err) console.error('Error deleting file:', err);
-        });
-      });
+      const keys = product.images.map(imagePath => path.join(process.cwd(), imagePath.replace('/', '')));
+      await storage.deleteObjects(keys);
     }
 
     await product.deleteOne();
