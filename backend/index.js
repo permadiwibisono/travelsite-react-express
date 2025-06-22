@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 import bcrypt from 'bcryptjs';
 import User from './models/UserModel.js';
+import storage from './config/storage.js';
 
 import userRoutes from './routes/UserRoute.js';
 import productRoutes from './routes/ProductRoutes.js';
@@ -26,7 +27,7 @@ app.get('/', (req, res) => {
 })
 
 // Routes
-app.use('/uploads', express.static('uploads'));
+app.use('/uploads', express.static(storage.assetsPath));
 app.use('/users', userRoutes);
 app.use('/products', productRoutes);
 app.use('/category', categoryRoutes);
